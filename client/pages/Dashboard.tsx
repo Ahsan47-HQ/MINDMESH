@@ -115,67 +115,6 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [isReady, getAllPages, getPageCount, getStorageSize]);
 
-  // Add sample data for testing
-  const handleAddSampleData = async () => {
-    try {
-      setIsLoading(true);
-      const sampleNodes = generateSampleMemoryNodes();
-      for (const node of sampleNodes) {
-        await addPage(node);
-      }
-      // Reload data
-      const allPages = await getAllPages();
-      const count = await getPageCount();
-      const size = await getStorageSize();
-
-      setPageCount(count);
-      setStorageSize(size);
-
-      const formattedMemories: PageMemory[] = allPages.map((node) => ({
-        id: node.id,
-        url: node.url,
-        title: node.title,
-        snippet: node.readableText.slice(0, 150),
-        timestamp: new Date(node.timestamp).toLocaleString(),
-        similarity: 1.0 - (Math.random() * 0.2),
-        keywords: node.keywords,
-      }));
-
-      setMemories(formattedMemories);
-
-      const clusterMap = new Map<string, PageMemory[]>();
-      formattedMemories.forEach((memory) => {
-        const primaryKeyword = memory.keywords[0] || "Other";
-        if (!clusterMap.has(primaryKeyword)) {
-          clusterMap.set(primaryKeyword, []);
-        }
-        clusterMap.get(primaryKeyword)!.push(memory);
-      });
-
-      const generatedClusters: Cluster[] = Array.from(clusterMap.entries())
-        .slice(0, 6)
-        .map(([keyword, pages], index) => ({
-          id: `c${index}`,
-          name: `${keyword.charAt(0).toUpperCase() + keyword.slice(1)} Resources`,
-          color: [
-            "from-blue-500 to-blue-600",
-            "from-purple-500 to-purple-600",
-            "from-pink-500 to-pink-600",
-            "from-green-500 to-green-600",
-            "from-orange-500 to-orange-600",
-            "from-teal-500 to-teal-600",
-          ][index % 6],
-          itemCount: pages.length,
-          pages: pages.slice(0, 3),
-        }));
-
-      setClusters(generatedClusters);
-    } catch (err) {
-      console.error("Failed to add sample data:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const filteredMemories = searchQuery
     ? memories.filter(
