@@ -44,13 +44,14 @@ export default function Dashboard() {
     error,
   } = useMemoryStorage();
 
-  // Load data from IndexedDB
+  // Load data from IndexedDB - real-time polling
   useEffect(() => {
     if (!isReady) return;
 
+    let interval: NodeJS.Timeout;
+
     const loadData = async () => {
       try {
-        setIsLoading(true);
         const allPages = await getAllPages();
         const count = await getPageCount();
         const size = await getStorageSize();
@@ -101,12 +102,17 @@ export default function Dashboard() {
         setClusters(generatedClusters);
       } catch (err) {
         console.error("Failed to load memories:", err);
-      } finally {
-        setIsLoading(false);
       }
     };
 
-    loadData();
+    // Initial load
+    setIsLoading(true);
+    loadData().then(() => setIsLoading(false));
+
+    // Poll for new data every 2 seconds (from extension capturing pages)
+    interval = setInterval(loadData, 2000);
+
+    return () => clearInterval(interval);
   }, [isReady, getAllPages, getPageCount, getStorageSize]);
 
   // Add sample data for testing
