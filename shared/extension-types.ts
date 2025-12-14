@@ -1,0 +1,107 @@
+/**
+ * Shared types for Cortex browser extension + web dashboard
+ * All communication between extension and web pages uses these types
+ */
+
+export interface PageContext {
+  url: string;
+  title: string;
+  readableText: string;
+  timestamp: number;
+  tabId?: number;
+  sessionId?: string;
+  favicon?: string;
+}
+
+export interface Embedding {
+  vector: number[];
+  model: "onnx-sentence" | "ggml";
+  timestamp: number;
+}
+
+export interface MemoryNode {
+  id: string;
+  url: string;
+  title: string;
+  readableText: string;
+  summary?: string;
+  timestamp: number;
+  embedding?: Embedding;
+  keywords: string[];
+  metadata: {
+    domain: string;
+    favicon?: string;
+    tabId?: number;
+    sessionId?: string;
+  };
+}
+
+export interface SemanticMatch {
+  nodeId: string;
+  similarity: number;
+  node: MemoryNode;
+  reason: {
+    sharedKeywords: string[];
+    contextMatch: string;
+    semanticSimilarity: number;
+  };
+}
+
+export interface MemoryCluster {
+  id: string;
+  name: string;
+  color: string;
+  nodes: MemoryNode[];
+  centroid?: number[];
+  keywords: string[];
+}
+
+export interface CaptureSettings {
+  enabled: boolean;
+  excludeDomains: string[];
+  excludeKeywords: string[];
+  maxStorageSize: number;
+}
+
+export interface PrivacyRule {
+  id: string;
+  type: "domain" | "date" | "keyword";
+  value: string;
+  status: "active" | "inactive";
+  createdAt: string;
+}
+
+// Message types for extension communication
+export type ExtensionMessage =
+  | {
+      type: "PAGE_CAPTURED";
+      payload: PageContext;
+    }
+  | {
+      type: "SEARCH_MEMORY";
+      payload: {
+        query: string;
+        limit?: number;
+      };
+    }
+  | {
+      type: "GET_SUGGESTIONS";
+      payload: {
+        currentUrl: string;
+        limit?: number;
+      };
+    }
+  | {
+      type: "FORGET_DATA";
+      payload: {
+        ruleId: string;
+      };
+    }
+  | {
+      type: "EXPORT_MEMORY";
+      payload: Record<string, never>;
+    }
+  | {
+      type: "UPDATE_CAPTURE_SETTINGS";
+      payload: Partial<CaptureSettings>;
+    };
