@@ -9,6 +9,7 @@ import { cortexStorage } from "../utils/storage";
 import { recallService } from "../services/recall-service";
 import { proactivityEngine } from "../services/proactivity-engine";
 import { activityInsightsService } from "../services/activity-insights";
+import { analyticsService } from "../services/analytics-service";
 import { shortcutGenerator } from "../services/shortcut-generator";
 import { actionExecutor } from "../services/action-executor";
 import { semanticGraphBuilder } from "../utils/semantic-graph";
@@ -198,8 +199,24 @@ const messageHandler = (message: ExtensionMessage, sender: chrome.runtime.Messag
         }
 
         case "SEARCH_MEMORY": {
-          const results = await recallService.search(message.payload.query, message.payload.limit);
-          return { success: true, data: results };
+          try {
+            console.log("Cortex: Starting SEARCH_MEMORY for query:", message.payload.query);
+            const results = await recallService.search(message.payload.query, message.payload.limit || 20);
+            console.log("Cortex: SEARCH_MEMORY completed, returning", results.totalResults, "results");
+            return { success: true, data: results };
+          } catch (error) {
+            console.error("Cortex: SEARCH_MEMORY error:", error);
+            return { 
+              success: false, 
+              error: String(error),
+              data: { 
+                matches: [], 
+                query: message.payload.query || "", 
+                timestamp: Date.now(), 
+                totalResults: 0 
+              }
+            };
+          }
         }
 
         case "GET_SUGGESTIONS": {
@@ -226,6 +243,31 @@ const messageHandler = (message: ExtensionMessage, sender: chrome.runtime.Messag
         case "GET_ACTIVITY_INSIGHTS": {
           const insights = await activityInsightsService.getActivityStats();
           return { success: true, data: insights };
+        }
+
+        case "GET_ANALYTICS": {
+          try {
+            console.log("Cortex: Starting GET_ANALYTICS");
+            const analytics = await analyticsService.getAnalytics();
+            console.log("Cortex: GET_ANALYTICS completed, totalPages:", analytics.totalPages);
+            return { success: true, data: analytics };
+          } catch (error) {
+            console.error("Cortex: GET_ANALYTICS error:", error);
+            return { 
+              success: false, 
+              error: String(error),
+              data: {
+                daily: [],
+                monthly: [],
+                yearly: [],
+                topSites: [],
+                topCategories: [],
+                totalPages: 0,
+                uniqueDomains: 0,
+                dateRange: { start: Date.now(), end: Date.now() }
+              }
+            };
+          }
         }
 
         case "GET_PRIVACY_RULES": {
