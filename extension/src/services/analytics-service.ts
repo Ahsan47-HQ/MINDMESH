@@ -188,12 +188,11 @@ export class AnalyticsService {
   }
 
   private calculateTopCategories(nodes: MemoryNode[]): TopCategory[] {
-    // Import category function from Dashboard (we'll need to share this logic)
-    // For now, use a simple domain-based categorization
     const categoryMap = new Map<string, number>();
     
     nodes.forEach((node) => {
-      const category = this.categorizeDomain(node.metadata.domain);
+      // Use the same categorization logic as Dashboard
+      const category = this.categorizeUrl(node.url || `https://${node.metadata.domain}`);
       categoryMap.set(category, (categoryMap.get(category) || 0) + 1);
     });
 
@@ -209,53 +208,108 @@ export class AnalyticsService {
       .slice(0, 15);
   }
 
-  private categorizeDomain(domain: string): string {
-    const domainLower = domain.toLowerCase();
+  /**
+   * Categorize URL using the same logic as Dashboard
+   * Must match exactly with Dashboard's categorizeUrl function
+   */
+  private categorizeUrl(url: string): string {
+    try {
+      const hostname = new URL(url).hostname.toLowerCase();
+      
+      // Category definitions - must match Dashboard exactly
+      const CATEGORY_DEFINITIONS = {
+        coding: {
+          domains: ["leetcode", "hackerrank", "codeforces", "codewars", "atcoder", "topcoder", "spoj", "projecteuler", "codechef"]
+        },
+        developer: {
+          domains: ["github", "gitlab", "bitbucket", "cursor", "vscode", "stackoverflow", "dev.to", "github.io", "git", "code"]
+        },
+        ai: {
+          domains: ["gemini", "claude", "chatgpt", "openai", "anthropic", "perplexity", "poe", "bard"]
+        },
+        documentation: {
+          domains: ["docs.", "developer.", "developers.", "learn.", "api.", "guide.", "reference.", "wiki.", "documentation.", "docs.nvidia", "developer.nvidia", "learn.microsoft", "docs.microsoft", "developer.microsoft", "docs.google", "developers.google", "docs.aws", "docs.github", "docs.gitlab", "docs.docker", "kubernetes.io/docs", "react.dev", "vuejs.org", "angular.io/docs", "nodejs.org/docs", "python.org/doc", "docs.python", "dev.mozilla.org", "developer.mozilla.org", "readthedocs.io", "gitbook.io", "devdocs.io"]
+        },
+        research: {
+          domains: ["arxiv", "pubmed", "scholar.google", "researchgate", "academia.edu", "jstor", "ieee", "acm.org", "springer", "nature.com", "science.org", "cell.com", "plos.org", "biorxiv", "medrxiv"]
+        },
+        shopping: {
+          domains: ["amazon", "ebay", "walmart", "etsy", "alibaba", "flipkart", "shopify", "bigcommerce", "target", "bestbuy"]
+        },
+        travel: {
+          domains: ["booking", "airbnb", "expedia", "tripadvisor", "kayak", "hotels", "skyscanner", "makemytrip", "goibibo", "agoda"]
+        },
+        health: {
+          domains: ["webmd", "healthline", "mayoclinic", "headspace", "calm", "myfitnesspal", "fitbit", "nhs.uk", "practo"]
+        },
+        food: {
+          domains: ["allrecipes", "foodnetwork", "tasty", "minimalistbaker", "seriouseats", "yelp", "zomato", "swiggy", "ubereats"]
+        },
+        entertainment: {
+          domains: ["netflix", "youtube", "spotify", "twitch", "hulu", "disneyplus", "primevideo", "hotstar", "apple.com/tv", "steam"]
+        },
+        jobs: {
+          domains: ["linkedin", "indeed", "glassdoor", "naukri", "monster", "internshala", "angellist", "stackoverflow.com/jobs"]
+        },
+        social: {
+          domains: ["facebook", "instagram", "twitter", "reddit", "tiktok", "pinterest", "snapchat", "telegram", "whatsapp", "discord"]
+        },
+        education: {
+          domains: ["coursera", "udemy", "edx", "khanacademy", "skillshare", "linkedin.com/learning", "pluralsight", "udacity", "byju"]
+        },
+        news: {
+          domains: ["bbc", "cnn", "nytimes", "theguardian", "reuters", "hindustantimes", "timesofindia", "medium", "substack"]
+        },
+        nonprofit: {
+          domains: ["wikipedia", "wikimedia", "redcross", "unicef", "wwf", "greenpeace", "amnesty", "doctorswithoutborders"]
+        },
+        corporate: {
+          domains: ["about", "careers", "company", "corporate", "investor"]
+        },
+        professional: {
+          domains: ["bloomberg", "forbes", "wsj", "morningstar", "marketwatch", "investing", "tradingview"]
+        },
+        portfolio: {
+          domains: ["behance", "dribbble", "deviantart", "artstation", "github.io", "portfolio", "wix.com/website"]
+        },
+        government: {
+          domains: [".gov", "irs.gov", "usa.gov", "nic.in", "india.gov", "mygov"]
+        }
+      };
+
+      // Priority order - must match Dashboard exactly
+      const CATEGORY_PRIORITY_ORDER = [
+        "coding", "ai", "developer", "documentation", "research",
+        "shopping", "travel", "health", "food", "entertainment", "jobs", "social", "education", "news", "nonprofit", "corporate", "professional", "portfolio", "government"
+      ];
+      
+      // Check categories in priority order
+      for (const categoryKey of CATEGORY_PRIORITY_ORDER) {
+        const category = CATEGORY_DEFINITIONS[categoryKey as keyof typeof CATEGORY_DEFINITIONS];
+        if (category) {
+          for (const domain of category.domains) {
+            if (hostname.includes(domain.toLowerCase())) {
+              return categoryKey;
+            }
+          }
+        }
+      }
+      
+      // Check remaining categories
+      for (const [key, category] of Object.entries(CATEGORY_DEFINITIONS)) {
+        if (!CATEGORY_PRIORITY_ORDER.includes(key)) {
+          for (const domain of category.domains) {
+            if (hostname.includes(domain.toLowerCase())) {
+              return key;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("AnalyticsService: Failed to categorize URL:", e);
+    }
     
-    // Priority order matters - check more specific categories first
-    // Coding practice sites (check FIRST to avoid misclassification)
-    if (domainLower.includes("leetcode") || domainLower.includes("hackerrank") || 
-        domainLower.includes("codeforces") || domainLower.includes("codewars") ||
-        domainLower.includes("atcoder") || domainLower.includes("topcoder") ||
-        domainLower.includes("spoj") || domainLower.includes("projecteuler") ||
-        domainLower.includes("codechef")) {
-      return "Coding Practice";
-    }
-    // Developer tools
-    if (domainLower.includes("github") || domainLower.includes("gitlab") || 
-        domainLower.includes("stackoverflow") || domainLower.includes("cursor") ||
-        domainLower.includes("vscode")) {
-      return "Developer Tools";
-    }
-    // AI tools
-    if (domainLower.includes("gemini") || domainLower.includes("claude") || 
-        domainLower.includes("chatgpt") || domainLower.includes("openai") ||
-        domainLower.includes("anthropic") || domainLower.includes("perplexity")) {
-      return "AI Tools";
-    }
-    // Technical documentation
-    if (domainLower.includes("docs.") || domainLower.includes("developer.") ||
-        domainLower.includes("learn.") || domainLower.includes("api.")) {
-      return "Technical Documentation";
-    }
-    // Job search
-    if (domainLower.includes("linkedin") || domainLower.includes("indeed") ||
-        domainLower.includes("glassdoor") || domainLower.includes("naukri")) {
-      return "Job Search";
-    }
-    // Shopping
-    if (domainLower.includes("amazon") || domainLower.includes("ebay") || 
-        domainLower.includes("flipkart") || domainLower.includes("walmart")) {
-      return "Shopping";
-    }
-    // Entertainment (check later to avoid false positives)
-    if (domainLower.includes("youtube") || domainLower.includes("netflix") || 
-        domainLower.includes("spotify") || domainLower.includes("twitch") ||
-        domainLower.includes("hulu") || domainLower.includes("disneyplus")) {
-      return "Entertainment";
-    }
-    
-    return "Other";
+    return "miscellaneous";
   }
 }
 

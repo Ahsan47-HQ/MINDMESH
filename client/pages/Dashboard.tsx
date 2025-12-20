@@ -995,21 +995,33 @@ export default function Dashboard() {
                       <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                         <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Top Categories</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {analytics.topCategories.map((cat: any) => (
-                            <div key={cat.category} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-                              <div className="flex items-center justify-between mb-2">
-                                <p className="font-bold text-slate-900 dark:text-white">{cat.category}</p>
-                                <p className="text-sm font-bold text-primary">{cat.percentage.toFixed(1)}%</p>
+                          {analytics.topCategories.map((cat: any) => {
+                            const categoryKey = cat.category;
+                            const categoryDef = CATEGORY_DEFINITIONS[categoryKey as keyof typeof CATEGORY_DEFINITIONS];
+                            const categoryName = categoryDef?.name || (categoryKey === "miscellaneous" ? "Miscellaneous" : categoryKey);
+                            const categoryColor = categoryDef?.color || "from-slate-400 to-slate-500";
+                            
+                            return (
+                              <div key={cat.category} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${categoryColor} flex items-center justify-center text-white text-xs font-black`}>
+                                      {categoryName.charAt(0)}
+                                    </div>
+                                    <p className="font-bold text-slate-900 dark:text-white">{categoryName}</p>
+                                  </div>
+                                  <p className="text-sm font-bold text-primary">{cat.percentage.toFixed(1)}%</p>
+                                </div>
+                                <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full bg-gradient-to-r ${categoryColor} rounded-full transition-all`}
+                                    style={{ width: `${cat.percentage}%` }}
+                                  />
+                                </div>
+                                <p className="text-xs text-slate-400 mt-1">{cat.count.toLocaleString()} pages</p>
                               </div>
-                              <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                                <div 
-                                  className="h-full bg-primary rounded-full transition-all"
-                                  style={{ width: `${cat.percentage}%` }}
-                                />
-                              </div>
-                              <p className="text-xs text-slate-400 mt-1">{cat.count.toLocaleString()} pages</p>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     )}
